@@ -1,0 +1,41 @@
+name: CI
+
+# PRを出したとき・mainにpushしたときに実行
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: テスト & コードチェック
+    runs-on: ubuntu-latest
+
+    steps:
+      # リポジトリのコードを取得
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      # Node.js のセットアップ
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: node-sample/package.json
+
+      # パッケージのインストール
+      - name: パッケージをインストール
+        working-directory: node-sample
+        run: npm install
+
+      # ESLint でコードチェック
+      - name: コードスタイルをチェック（ESLint）
+        working-directory: node-sample
+        run: npm run lint
+
+      # Jest でテスト実行
+      - name: テストを実行
+        working-directory: node-sample
+        run: npm test
