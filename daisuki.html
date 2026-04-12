@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パパとママ どっちが大好き？</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ffe0f0 0%, #fff5f8 40%, #ffeef5 100%);
+      font-family: 'Hiragino Maru Gothic Pro', 'Rounded Mplus 1c', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 花びら */
+    .petals-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .petal {
+      position: absolute;
+      top: -40px;
+      font-size: 1.5rem;
+      animation: fall linear infinite;
+      opacity: 0.8;
+    }
+
+    @keyframes fall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* メインカード */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 32px;
+      padding: 48px 56px;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(255,150,180,0.25);
+      max-width: 480px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #e07090;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #c08090;
+      margin-bottom: 36px;
+    }
+
+    /* ボタン */
+    #startBtn {
+      background: linear-gradient(135deg, #ff85aa, #ff5588);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 16px 48px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,85,136,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 0.08em;
+    }
+
+    #startBtn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(255,85,136,0.5);
+    }
+
+    #startBtn:active {
+      transform: translateY(0);
+    }
+
+    /* ドラム演出 */
+    #drumArea {
+      display: none;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #e05080;
+      min-height: 60px;
+      letter-spacing: 0.1em;
+      animation: pulse 0.18s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.12); }
+    }
+
+    /* 結果 */
+    #result {
+      display: none;
+      animation: popIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    @keyframes popIn {
+      0%   { transform: scale(0.3); opacity: 0; }
+      60%  { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    .result-label {
+      font-size: 1rem;
+      color: #c08090;
+      margin-bottom: 8px;
+    }
+
+    .result-name {
+      font-size: 3.5rem;
+      font-weight: bold;
+      color: #e03070;
+      text-shadow: 0 2px 12px rgba(255,100,150,0.3);
+      margin-bottom: 8px;
+    }
+
+    .result-emoji {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .result-msg {
+      font-size: 1rem;
+      color: #c06080;
+      margin-bottom: 24px;
+    }
+
+    #retryBtn {
+      background: white;
+      color: #e05080;
+      border: 2px solid #ffaabb;
+      border-radius: 50px;
+      padding: 10px 32px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    #retryBtn:hover {
+      background: #fff0f5;
+    }
+
+    /* 花吹雪爆発 */
+    .burst {
+      position: fixed;
+      pointer-events: none;
+      font-size: 2rem;
+      z-index: 10;
+      animation: burst 1.2s ease-out forwards;
+    }
+
+    @keyframes burst {
+      0%   { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="petals-container" id="petals"></div>
+
+<div class="card">
+  <h1>🌸 パパとママ 🌸</h1>
+  <p class="subtitle">どっちが大好き？</p>
+
+  <div id="startArea">
+    <button id="startBtn" onclick="startDrum()">✨ 答えを出す ✨</button>
+  </div>
+
+  <div id="drumArea"></div>
+
+  <div id="result">
+    <p class="result-label">大好きなのは...</p>
+    <div class="result-name" id="resultName"></div>
+    <div class="result-emoji" id="resultEmoji"></div>
+    <p class="result-msg" id="resultMsg"></p>
+    <button id="retryBtn" onclick="reset()">もう一度！</button>
+  </div>
+</div>
+
+<script>
+  // 花びら生成
+  const petalEmojis = ['🌸', '🌷', '🌺', '🌼', '🪷'];
+  const container = document.getElementById('petals');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = petalEmojis[Math.floor(Math.random() * petalEmojis.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (4 + Math.random() * 6) + 's';
+    p.style.animationDelay = (Math.random() * 6) + 's';
+    p.style.fontSize = (1 + Math.random() * 1.2) + 'rem';
+    container.appendChild(p);
+  }
+
+  // ドラム演出
+  const drums = ['じゃ', 'か', 'じゃ', 'か', 'じゃ', 'か', 'じゃ', '〜', '〜', 'ん！！！'];
+
+  function startDrum() {
+    document.getElementById('startArea').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    const drumArea = document.getElementById('drumArea');
+    drumArea.style.display = 'block';
+    drumArea.textContent = '';
+
+    let i = 0;
+    const interval = setInterval(() => {
+      drumArea.textContent = drums[i];
+      i++;
+      if (i >= drums.length) {
+        clearInterval(interval);
+        setTimeout(showResult, 400);
+      }
+    }, 180);
+  }
+
+  function showResult() {
+    document.getElementById('drumArea').style.display = 'none';
+
+    const choices = [
+      {
+        name: 'パパ',
+        emoji: '👨',
+        msg: 'パパ、愛されてるよ〜！ (^o^)/'
+      },
+      {
+        name: 'ママ',
+        emoji: '👩',
+        msg: 'ママ、愛されてるよ〜！ (^o^)/'
+      }
+    ];
+    const pick = choices[Math.floor(Math.random() * 2)];
+
+    document.getElementById('resultName').textContent = '【 ' + pick.name + ' 】';
+    document.getElementById('resultEmoji').textContent = pick.emoji;
+    document.getElementById('resultMsg').textContent = pick.msg;
+
+    const result = document.getElementById('result');
+    result.style.display = 'block';
+
+    // 花吹雪爆発
+    for (let i = 0; i < 24; i++) {
+      setTimeout(() => spawnBurst(), Math.random() * 600);
+    }
+  }
+
+  function spawnBurst() {
+    const el = document.createElement('div');
+    el.className = 'burst';
+    el.textContent = petalEmojis[Math.floor(Math.random() * petalEmojis.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 180;
+    el.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    el.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    el.style.left = (40 + Math.random() * 20) + '%';
+    el.style.top = (30 + Math.random() * 20) + '%';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  function reset() {
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('startArea').style.display = 'block';
+  }
+</script>
+</body>
+</html>
